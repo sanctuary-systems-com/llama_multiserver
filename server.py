@@ -13,7 +13,10 @@ class Runner:
         self.loop = asyncio.get_running_loop()
 
         binary = args.pop("exec", "llama-server")
-        cmd = [binary]
+        if isinstance(binary, str):
+            cmd = [binary]
+        else:
+            cmd = binary
         for k, v in args.items():
             if v == True:
                 cmd.append("--"+k)
@@ -40,14 +43,16 @@ class Runner:
         self.proc.terminate()
     
     async def online(self):
-        ps = psutil.Process(self.proc.pid)
         while True:
             if self.proc.poll() != None:
                 return False
+            ps = psutil.Process(self.proc.pid)
             conn = ps.net_connections()
-            if conn:
-                return True
-            await asyncio.sleep(0.01)
+            print(conn)
+            for sock in  conn:
+                if sock.laddr.port == self.port:
+                    return True
+            await asyncio.sleep(1)
 
 
 active_runner = None
@@ -81,6 +86,7 @@ async def forward_request(request):
             return resp
 
 async def models_request(request):
+    #TODO fill in model details
     return web.json_response(
         {"object":"list",
          "data":[{"id":k,"object":"model"} for k in runners.keys()]}

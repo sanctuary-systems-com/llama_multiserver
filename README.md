@@ -19,11 +19,11 @@ timeout = 300
 gpu-layers = 999
 model = "/path/to/Meta-Llama-3.1-8B-Instruct-Q4_K_S.gguf"
 
-["mistral:latest"]
-exec = "/some/runner"
-port = 3248
-gpu-layers = 999
-model = "/path/to//mistral-7b-instruct-v0.1.Q4_K_M.gguf"
+["Qwen/Qwen2.5-coder-3B"]
+exec = ["vllm", "serve", "Qwen/Qwen2.5-coder-3B"]
+gpu-memory-utilization = 0.5
+max-model-len = 4096
+port = 8900
 ```
 
 Install dependencies:
@@ -38,3 +38,13 @@ Run:
 python server.py
 ```
 
+Test:
+
+```
+curl http://localhost:8765/v1/completions -H "Content-Type: application/json" -d '{
+  "model": "llama3.1:latest",
+  "prompt": "Write a report on the financials of Apple Inc.",
+  "max_tokens": 1024,
+  "temperature": 0
+}'
+```
