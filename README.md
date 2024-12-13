@@ -2,7 +2,7 @@
 
 A proxy and process manager for single-model runners like Llama.cpp and vLLM.
 
-Runners like Llama.cpp and vLLM have wide support for different GPUs, but the projects that use them like Ollama frequently only support modern NVIDIA and AMD cards. This leaves users of Intel or older AMD cards with [stale PRs](https://github.com/ollama/ollama/pull/5059) and [outdated forks](https://github.com/intel-analytics/ipex-llm/issues/12370).
+Runners like Llama.cpp and vLLM have wide support for different GPUs, but the projects that use them like Ollama or LM Studio frequently only support modern NVIDIA and AMD cards on x86. This leaves users on Arm or with Intel or older AMD cards with [stale PRs](https://github.com/ollama/ollama/pull/5059) and [outdated forks](https://github.com/intel-analytics/ipex-llm/issues/12370).
 
 On the other hand, Llama.cpp and vLLM only support running a single model that is kept in memory perpetually. That makes them unsuitable to serve a variety of models in the background on the average desktop.
 
