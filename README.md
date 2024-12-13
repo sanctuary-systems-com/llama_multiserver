@@ -1,12 +1,12 @@
 # Llama multiserver
 
-A proxy and process manager for single-model runners like Llama.cpp and vLLM.
+A proxy server and process manager for on-demand loading and unloading of single-model runners like Llama.cpp and vLLM to efficiently serve multiple models.
 
-Runners like Llama.cpp and vLLM have wide support for different GPUs, but the projects that use them like Ollama or LM Studio frequently only support modern NVIDIA and AMD cards on x86. This leaves users on Arm or with Intel or older AMD cards with [stale PRs](https://github.com/ollama/ollama/pull/5059) and [outdated forks](https://github.com/intel-analytics/ipex-llm/issues/12370).
+Combines the performance and GPU support of runners like Llama.cpp and vLLM with the dynamic model loading of apps like Ollama and LM Studio.
 
-On the other hand, Llama.cpp and vLLM only support running a single model that is kept in memory perpetually. That makes them unsuitable to serve a variety of models in the background on the average desktop.
+## Why
 
-This project is a proxy that will start configured runners on demand, and terminate them when idle.
+Because Ollama only cares about CUDA and ROCm wich makes my Intel GPU sad.
 
 ## Usage
 
