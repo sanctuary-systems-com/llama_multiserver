@@ -1,31 +1,33 @@
 import aiohttp
 from aiohttp import web
-import tomllib
 import subprocess
 import asyncio
 import psutil
+import sys
 
 class Runner:
-    def __init__(self, name, args):
+    def __init__(self, name, port=8234, host="localhost"):
+        global timeout
+
         self.name = name
-        self.port = args.get("port", 8080)
-        self.host = args.get("host", "localhost")
+        self.port = port
+        self.host = host
         self.loop = asyncio.get_running_loop()
 
-        binary = args.pop("exec", "llama-server")
-        if isinstance(binary, str):
-            cmd = [binary]
-        else:
-            cmd = binary
-        for k, v in args.items():
-            if v == True:
-                cmd.append("--"+k)
-            else:
-                cmd.extend(["--"+k, str(v)])
+        cmd = [
+            "llama-server",
+            "--host", host,
+            "--port", str(port),
+            "--hf-repo", name,
+            "--gpu-layers", "999",
+            "--jinja",
+            "--no-warmup",
+        ]
         self.proc = subprocess.Popen(cmd)
 
-        self.keepalive()
-        self._timeout()
+        if timeout:
+            self.keepalive()
+            self._timeout()
     
     def _timeout(self):
         if self.stop_at < self.loop.time():
@@ -38,7 +40,8 @@ class Runner:
         self.stop_at = self.loop.time()+timeout
 
     def terminate(self):
-        self.timer.cancel()
+        if hasattr(self, "timer"):
+            self.timer.cancel()
         print("stopping runner for", self.name)
         self.proc.terminate()
     
@@ -64,7 +67,7 @@ async def forward_request(request):
     if active_runner == None or active_runner.name != model or not await active_runner.online():
         if active_runner != None:
             active_runner.terminate()
-        active_runner = Runner(model, runners[model])
+        active_runner = Runner(model)
         await active_runner.online()
     active_runner.keepalive()
 
@@ -72,24 +75,29 @@ async def forward_request(request):
     print(target_url)
 
     async with aiohttp.ClientSession() as session:
-        async with session.request(method=request.method,
-                                   url=target_url,
-                                   headers=request.headers,
-                                   data=await request.read()) as req:
+        while True:
+            async with session.request(method=request.method,
+                                    url=target_url,
+                                    headers=request.headers,
+                                    data=await request.read()) as req:
 
-            resp = web.StreamResponse(status=req.status, reason=req.reason)
-            resp.headers.update(resp.headers)
-            await resp.prepare(request)
-            async for chunk in req.content.iter_any():
-                await resp.write(chunk)
-            await resp.write_eof()
-            return resp
+                if req.status == 503:
+                    await asyncio.sleep(5)
+                    continue
+
+                resp = web.StreamResponse(status=req.status, reason=req.reason)
+                resp.headers.update(resp.headers)
+                await resp.prepare(request)
+                async for chunk in req.content.iter_any():
+                    await resp.write(chunk)
+                await resp.write_eof()
+                return resp
 
 async def models_request(request):
-    #TODO fill in model details
+    #TODO list cached models
     return web.json_response(
         {"object":"list",
-         "data":[{"id":k,"object":"model"} for k in runners.keys()]}
+         "data":[{"id":k,"object":"model"} for k in []]}
     )
 
 
@@ -101,9 +109,6 @@ routes = [
 app = web.Application()
 app.add_routes(routes)
 
-with open("runners.toml", "rb") as f:
-    runners = tomllib.load(f)
-
-timeout = runners.pop("timeout", 5*60)
+timeout = int(sys.argv[1]) if len(sys.argv) > 1 else 0
 
 web.run_app(app, host='0.0.0.0', port=8765)

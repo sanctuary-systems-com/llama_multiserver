@@ -42,9 +42,9 @@ Test:
 
 ```
 curl http://localhost:8765/v1/completions -H "Content-Type: application/json" -d '{
-  "model": "llama3.1:latest",
+  "model": "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
   "prompt": "Write a report on the financials of Apple Inc.",
-  "max_tokens": 1024,
+  "max_tokens": 128,
   "temperature": 0
 }'
 ```
