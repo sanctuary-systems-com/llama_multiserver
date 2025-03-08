@@ -4,6 +4,10 @@ import subprocess
 import asyncio
 import psutil
 import sys
+import json
+import os
+import pathlib
+from urllib.parse import urlparse
 
 class Runner:
     def __init__(self, name, port=8234, host="localhost"):
@@ -74,15 +78,17 @@ async def forward_request(request):
     target_url = f"http://{active_runner.host}:{active_runner.port}/{request.match_info['tail']}"
     print(target_url)
 
-    async with aiohttp.ClientSession() as session:
-        while True:
+    data = await request.read()
+    while True:
+        async with aiohttp.ClientSession() as session:
             async with session.request(method=request.method,
                                     url=target_url,
                                     headers=request.headers,
-                                    data=await request.read()) as req:
+                                    data=data) as req:
 
                 if req.status == 503:
-                    await asyncio.sleep(5)
+                    req.close()
+                    await asyncio.sleep(1)
                     continue
 
                 resp = web.StreamResponse(status=req.status, reason=req.reason)
@@ -93,11 +99,38 @@ async def forward_request(request):
                 await resp.write_eof()
                 return resp
 
+# Check environment variables for cache location
+if "XDG_CACHE_HOME" in os.environ:
+    cache_dir = os.path.join(os.environ["XDG_CACHE_HOME"], "llama.cpp")
+elif "LOCALAPPDATA" in os.environ:
+    cache_dir = os.path.join(os.environ["LOCALAPPDATA"], "llama.cpp")
+else:
+    cache_dir = os.path.expanduser("~/.cache/llama.cpp")
+cache_path = pathlib.Path(cache_dir)
+
 async def models_request(request):
-    #TODO list cached models
+    model_ids = []
+
+    # Get all JSON files in the cache directory
+    if cache_path.exists():
+        for file_path in cache_path.glob("*.json"):
+            try:
+                with open(file_path, 'r') as f:
+                    data = json.load(f)
+                    url = data["url"]
+
+                    parsed_url = urlparse(url)
+                    path_parts = parsed_url.path.strip('/').split('/')
+
+                    model_id = f"{path_parts[0]}/{path_parts[1]}"
+                    model_ids.append(model_id)
+            except:
+                # Skip any files with errors
+                continue
+
     return web.json_response(
-        {"object":"list",
-         "data":[{"id":k,"object":"model"} for k in []]}
+        {"object": "list",
+         "data": [{"id": k, "object": "model"} for k in model_ids]}
     )
 
 
