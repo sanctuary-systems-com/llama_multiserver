@@ -100,7 +100,9 @@ async def forward_request(request):
                 return resp
 
 # Check environment variables for cache location
-if "XDG_CACHE_HOME" in os.environ:
+if "LLAMA_CACHE" in os.environ:
+    cache_dir = os.environ["LLAMA_CACHE"]
+elif "XDG_CACHE_HOME" in os.environ:
     cache_dir = os.path.join(os.environ["XDG_CACHE_HOME"], "llama.cpp")
 elif "LOCALAPPDATA" in os.environ:
     cache_dir = os.path.join(os.environ["LOCALAPPDATA"], "llama.cpp")
