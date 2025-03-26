@@ -7,7 +7,18 @@ import sys
 import json
 import os
 import pathlib
+import re
 from urllib.parse import urlparse
+
+template_dir = os.environ.get("TEMPLATE_DIR", "models/templates")
+
+templates = {
+    "functionary-small-v3.2-GGUF": f"{template_dir}/meetkai-functionary-medium-v3.2.jinja",
+    "Hermes-2-Pro-Llama-3-8B-GGUF": f"{template_dir}/NousResearch-Hermes-2-Pro-Llama-3-8B-tool_use.jinja",
+    "Hermes-3-Llama-3.1-8B-GGUF": f"{template_dir}/NousResearch-Hermes-3-Llama-3.1-8B-tool_use.jinja",
+    "firefunction-v2-GGUF": f"{template_dir}/fireworks-ai-llama-3-firefunction-v2.jinja",
+    "c4ai-command-r7b-12-2024-GGUF": f"{template_dir}/CohereForAI-c4ai-command-r7b-12-2024-tool_use.jinja",
+}
 
 class Runner:
     def __init__(self, name, port=8234, host="localhost"):
@@ -27,6 +38,9 @@ class Runner:
             "--jinja",
             "--no-warmup",
         ]
+        repo = re.split("[/:]", name)[1]
+        if repo in templates:
+            cmd += ["--chat-template-file", templates[repo]]
         self.proc = subprocess.Popen(cmd)
 
         if timeout:
