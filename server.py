@@ -65,7 +65,9 @@ class Runner:
     
     async def online(self):
         while True:
-            if self.proc.poll() != None:
+            exitcode = self.proc.poll()
+            if exitcode is not None:
+                print(f"Runner for {self.name} exited with code {exitcode}")
                 return False
             ps = psutil.Process(self.proc.pid)
             conn = ps.net_connections()
